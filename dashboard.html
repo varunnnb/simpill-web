@@ -303,7 +303,6 @@
   </div>
   <script>
     const token = localStorage.getItem('token');
-
     if (!token) {
       window.location.href = '/';
     }
@@ -313,6 +312,12 @@
 
     // Request notification permission
     async function requestNotificationPermission() {
+      if (!("Notification" in window)) {
+        console.error("Notifications not supported");
+        document.getElementById('error-message').textContent = 'Browser does not support notifications';
+        document.getElementById('error-message').style.display = 'block';
+        return false;
+      }
       if (Notification.permission === 'default') {
         const permission = await Notification.requestPermission();
         console.log('Notification permission:', permission);
@@ -326,9 +331,10 @@
       if (Notification.permission === 'granted') {
         new Notification('SimPill Reminder', {
           body: `Time to take ${medication.name} (${medication.dosage})!`,
-          icon: './logo.png'
+          icon: './logo.png',
+          tag: `med-${medication._id}` // Prevent duplicates
         });
-        console.log('Notification shown for:', medication);
+        console.log('Notification shown for:', medication.name);
       }
     }
 
@@ -338,6 +344,9 @@
         const response = await fetch('/medications', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
         const medications = await response.json();
         const now = new Date();
         const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -362,7 +371,7 @@
             const timeDiff = Math.abs(currentMinutes - medTotalMinutes);
             const lastTakenDate = med.lastTaken ? new Date(med.lastTaken).toISOString().split('T')[0] : null;
             const isTakenToday = lastTakenDate === currentDate;
-            if (!isTakenToday && timeDiff <= 0.25 && !notifiedMedications[med._id]) {
+            if (!isTakenToday && timeDiff <= 1 && !notifiedMedications[med._id]) {
               showNotification(med);
               notifiedMedications[med._id] = `${currentDate}@${med.time}`;
             }
@@ -370,7 +379,47 @@
         });
       } catch (error) {
         console.error('Check medications error:', error);
+        document.getElementById('error-message').textContent = 'Failed to load medications. Please try again.';
+        document.getElementById('error-message').style.display = 'block';
       }
+    }
+
+    // Register service worker and subscribe to push
+    async function subscribeToPush() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.warn('Push notifications not supported');
+        return;
+      }
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker registered');
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array('YOUR_PUBLIC_VAPID_KEY')
+        });
+        const response = await fetch('/subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(subscription)
+        });
+        if (response.ok) {
+          console.log('Subscribed to push notifications');
+        } else {
+          console.error('Subscription failed:', response.status);
+        }
+      } catch (error) {
+        console.error('Push subscription error:', error);
+      }
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
     }
 
     async function fetchMedications() {
@@ -378,6 +427,9 @@
         const response = await fetch('/medications', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
         const medications = await response.json();
         console.log('Fetched medications:', medications);
         const list = document.getElementById('medication-list');
@@ -500,11 +552,12 @@
       }
     });
 
-    // Initialize notifications
+    // Initialize notifications and push
     requestNotificationPermission().then(granted => {
       if (granted) {
         checkMedications();
-        setInterval(checkMedications, 5000);
+        setInterval(checkMedications, 60000); // Check every minute
+        subscribeToPush();
       } else {
         console.log('Notifications not enabled');
         document.getElementById('error-message').textContent = 'Please enable notifications for reminders';
