@@ -395,7 +395,7 @@
         console.log('Service Worker registered');
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array('YOUR_PUBLIC_VAPID_KEY')
+          applicationServerKey: urlBase64ToUint8Array('BEUwqt9jPhstMlVKX9cJlGi4lfrZdUKLhpJMHFr1fU3qzQ5oZJFl5kOBrqhW4HeBXV3747G3rNvzo-65Wmjj6Pw')
         });
         const response = await fetch('/subscribe', {
           method: 'POST',
