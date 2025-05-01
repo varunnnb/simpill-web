@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const webpush = require('web-push');
 const cors = require('cors');
-const User = require('./models/User');
+const User = require('./models/user');
 const Medication = require('./models/Medication');
 
 const app = express();
