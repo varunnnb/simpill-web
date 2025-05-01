@@ -1,0 +1,15 @@
+{
+  "name": "simpill",
+  "version": "1.0.0",
+  "description": "SimPill medication management app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^8.5.1"
+  }
+}

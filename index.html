@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SimPill - Login</title>
+  <style>
+    @font-face {
+      font-family: 'CustomFont';
+      src: url('./font.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'CustomFont', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #F7FAFC; /* Light blue-gray for medical cleanliness */
+    }
+
+    .login-container {
+      background: #FFFFFF; /* White for a clean look */
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .login-logo {
+      width: 120px;
+      max-width: 100%;
+      height: auto;
+      margin-bottom: 20px;
+    }
+
+    .login-container h2 {
+      margin-bottom: 24px;
+      color: #333333; /* Dark gray for professionalism */
+      font-size: 22px;
+      font-weight: 500;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group {
+      position: relative;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #D1D5DB; /* Light gray border */
+      border-radius: 6px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s ease-in-out;
+    }
+
+    .form-group input:focus {
+      border-color: #0e606e; /* Deep teal for focus */
+    }
+
+    .form-group label {
+      position: absolute;
+      top: 50%;
+      left: 12px;
+      transform: translateY(-50%);
+      color: #666666; /* Medium gray for labels */
+      font-size: 14px;
+      pointer-events: none;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .form-group input:focus + label,
+    .form-group input:not(:placeholder-shown) + label {
+      top: -8px;
+      font-size: 12px;
+      color: #0e606e; /* Deep teal for active labels */
+      background: #FFFFFF;
+      padding: 0 4px;
+    }
+
+    button {
+      padding: 12px;
+      background: #0e606e; /* Deep teal for button */
+      border: none;
+      border-radius: 6px;
+      color: #FFFFFF;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s ease-in-out;
+    }
+
+    button:hover {
+      background: #094752; /* Darker teal on hover */
+    }
+
+    #error-message {
+      color: #ff4d4d; /* Red for errors */
+      font-size: 14px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .signup-link {
+      margin-top: 20px;
+      color: #666666;
+      font-size: 14px;
+    }
+
+    .signup-link a {
+      color: #ff9700; /* Vibrant orange for link */
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .signup-link a:hover {
+      color: #e68900; /* Slightly darker orange on hover */
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 24px;
+        margin: 16px;
+      }
+
+      .login-container h2 {
+        font-size: 20px;
+      }
+
+      .login-logo {
+        width: 100px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <img src="./logo.png" alt="SimPill Logo" class="login-logo">
+    <h2>Login to SimPill</h2>
+    <form id="login-form" class="login-form">
+      <div class="form-group">
+        <input type="email" id="email" placeholder=" " required>
+        <label for="email">Email</label>
+      </div>
+      <div class="form-group">
+        <input type="password" id="password" placeholder=" " required>
+        <label for="password">Password</label>
+      </div>
+      <button type="submit">Login</button>
+    </form>
+    <p id="error-message"></p>
+    <div class="signup-link">
+      Don't have an account? <a href="/signup">Sign Up</a>
+    </div>
+  </div>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorMessage = document.getElementById('error-message');
+      errorMessage.style.display = 'none';
+      console.log('Sending login request:', { email, password });
+      try {
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+        console.log('Login response:', data);
+        if (response.ok) {
+          localStorage.setItem('token', data.token); // Store JWT
+          alert('Login successful! Redirecting to dashboard.');
+          window.location.href = '/dashboard';
+        } else {
+          errorMessage.textContent = data.message || 'Login failed';
+          errorMessage.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        errorMessage.textContent = 'Network error';
+        errorMessage.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SimPill - Dashboard</title>
+  <style>
+    @font-face {
+      font-family: 'CustomFont';
+      src: url('./font.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'CustomFont', sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #F7FAFC;
+    }
+
+    .dashboard-container {
+      background: #FFFFFF;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+
+    .dashboard-container:hover {
+      transform: translateY(-5px);
+    }
+
+    .dashboard-logo {
+      width: 120px;
+      max-width: 100%;
+      height: auto;
+      margin-bottom: 20px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+
+    .dashboard-container h2 {
+      margin-bottom: 24px;
+      color: #333333;
+      font-size: 24px;
+      font-weight: 600;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .medication-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      position: relative;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #D1D5DB;
+      border-radius: 6px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #0e606e;
+      box-shadow: 0 0 0 3px rgba(14, 96, 110, 0.1);
+    }
+
+    .form-group label {
+      position: absolute;
+      top: 50%;
+      left: 12px;
+      transform: translateY(-50%);
+      color: #666666;
+      font-size: 14px;
+      pointer-events: none;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .form-group input:focus + label,
+    .form-group input:not(:placeholder-shown) + label,
+    .form-group select:focus + label,
+    .form-group select:not(:placeholder-shown) + label {
+      top: -8px;
+      font-size: 12px;
+      color: #0e606e;
+      background: #FFFFFF;
+      padding: 0 4px;
+    }
+
+    button {
+      padding: 12px;
+      background: linear-gradient(135deg, #0e606e, #1a8294);
+      border: none;
+      border-radius: 6px;
+      color: #FFFFFF;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover {
+      background: linear-gradient(135deg, #094752, #156f81);
+      transform: translateY(-2px);
+    }
+
+    #error-message {
+      color: #ff4d4d;
+      font-size: 14px;
+      margin-top: 10px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .medication-list {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    .medication-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #D1D5DB;
+      background: #F9FAFB;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      transition: background 0.2s ease;
+    }
+
+    .medication-item:hover {
+      background: #F1F5F9;
+    }
+
+    .medication-info {
+      flex: 1;
+      color: #333333;
+      font-size: 16px;
+      padding: 8px 12px;
+    }
+
+    .mark-taken-button {
+      background: linear-gradient(135deg, #0e606e, #1a8294);
+      color: #FFFFFF;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: 10px;
+      transition: background 0.3s ease, transform 0.2s ease;
+      animation: slideIn 0.3s ease;
+    }
+
+    .mark-taken-button:hover {
+      background: linear-gradient(135deg, #094752, #156f81);
+      transform: translateY(-1px);
+    }
+
+    .mark-taken-button:active {
+      transform: scale(0.98);
+    }
+
+    .taken-container {
+      display: flex;
+      align-items: center;
+      background: linear-gradient(135deg, #28a745, #34c759);
+      color: #FFFFFF;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-left: 10px;
+      animation: slideIn 0.3s ease;
+    }
+
+    .taken-container::before {
+      content: '✔';
+      margin-right: 6px;
+      font-size: 16px;
+    }
+
+    .delete-button {
+      background: linear-gradient(135deg, #ff4d4d, #ff6b6b);
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 6px;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    .delete-button:hover {
+      background: linear-gradient(135deg, #e04444, #f05959);
+      transform: translateY(-2px);
+    }
+
+    .logout-link {
+      margin-top: 20px;
+      color: #ff9700;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .logout-link:hover {
+      color: #e68900;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(10px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @media (max-width: 480px) {
+      .dashboard-container {
+        padding: 24px;
+        margin: 16px;
+      }
+
+      .dashboard-container h2 {
+        font-size: 20px;
+      }
+
+      .dashboard-logo {
+        width: 100px;
+      }
+
+      .medication-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px;
+      }
+
+      .mark-taken-button,
+      .taken-container,
+      .delete-button {
+        margin-left: 0;
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <img src="./logo.png" alt="SimPill Logo" class="dashboard-logo">
+    <h2>Your Medication Schedule</h2>
+    <form id="medication-form" class="medication-form">
+      <div class="form-group">
+        <input type="text" id="name" placeholder=" " required>
+        <label for="name">Medication Name</label>
+      </div>
+      <div class="form-group">
+        <input type="text" id="dosage" placeholder=" " required>
+        <label for="dosage">Dosage (e.g., 1 tablet)</label>
+      </div>
+      <div class="form-group">
+        <input type="time" id="time" placeholder=" " required>
+        <label for="time">Time</label>
+      </div>
+      <div class="form-group">
+        <select id="frequency" required>
+          <option value="" disabled selected hidden></option>
+          <option value="Daily">Daily</option>
+          <option value="Weekly">Weekly</option>
+        </select>
+        <label for="frequency">Frequency</label>
+      </div>
+      <button type="submit">Add Medication</button>
+    </form>
+    <p id="error-message"></p>
+    <div class="medication-list" id="medication-list"></div>
+    <a href="/" class="logout-link" id="logout">Logout</a>
+  </div>
+  <script>
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      window.location.href = '/';
+    }
+
+    // Track notified medications
+    const notifiedMedications = {};
+
+    // Request notification permission
+    async function requestNotificationPermission() {
+      if (Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        console.log('Notification permission:', permission);
+        return permission === 'granted';
+      }
+      return Notification.permission === 'granted';
+    }
+
+    // Show notification
+    function showNotification(medication) {
+      if (Notification.permission === 'granted') {
+        new Notification('SimPill Reminder', {
+          body: `Time to take ${medication.name} (${medication.dosage})!`,
+          icon: './logo.png'
+        });
+        console.log('Notification shown for:', medication);
+      }
+    }
+
+    // Check medication times
+    async function checkMedications() {
+      try {
+        const response = await fetch('/medications', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const medications = await response.json();
+        const now = new Date();
+        const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const currentDate = now.toISOString().split('T')[0];
+
+        // Clear old notifications
+        for (const medId in notifiedMedications) {
+          const [notifiedDate, notifiedTime] = notifiedMedications[medId].split('@');
+          const [notifiedHours, notifiedMinutes] = notifiedTime.split(':').map(Number);
+          const notifiedTotalMinutes = notifiedHours * 60 + notifiedMinutes;
+          const timeDiff = Math.abs(currentMinutes - notifiedTotalMinutes);
+          if (timeDiff > 1 || notifiedDate !== currentDate) {
+            delete notifiedMedications[medId];
+          }
+        }
+
+        medications.forEach(med => {
+          if (med.frequency === 'Daily') {
+            const [medHours, medMinutes] = med.time.split(':').map(Number);
+            const medTotalMinutes = medHours * 60 + medMinutes;
+            const timeDiff = Math.abs(currentMinutes - medTotalMinutes);
+            const lastTakenDate = med.lastTaken ? new Date(med.lastTaken).toISOString().split('T')[0] : null;
+            const isTakenToday = lastTakenDate === currentDate;
+            if (!isTakenToday && timeDiff <= 0.25 && !notifiedMedications[med._id]) {
+              showNotification(med);
+              notifiedMedications[med._id] = `${currentDate}@${med.time}`;
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Check medications error:', error);
+      }
+    }
+
+    async function fetchMedications() {
+      try {
+        const response = await fetch('/medications', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const medications = await response.json();
+        console.log('Fetched medications:', medications);
+        const list = document.getElementById('medication-list');
+        list.innerHTML = '';
+        medications.forEach(med => {
+          const item = document.createElement('div');
+          item.className = 'medication-item';
+          const lastTakenDate = med.lastTaken ? new Date(med.lastTaken).toISOString().split('T')[0] : null;
+          const today = new Date().toISOString().split('T')[0];
+          const isTakenToday = lastTakenDate === today;
+          item.innerHTML = `
+            <span class="medication-info">
+              ${med.name} - ${med.dosage} at ${med.time} (${med.frequency})
+            </span>
+            ${isTakenToday ? '<div class="taken-container">Taken for Today</div>' : `<button class="mark-taken-button" data-med-id="${med._id}">Mark as Taken</button>`}
+            <button class="delete-button" onclick="deleteMedication('${med._id}')">Delete</button>
+          `;
+          list.appendChild(item);
+        });
+      } catch (error) {
+        console.error('Fetch medications error:', error);
+        document.getElementById('error-message').textContent = 'Error loading medications';
+        document.getElementById('error-message').style.display = 'block';
+      }
+    }
+
+    async function markTaken(id) {
+      try {
+        console.log('Attempting to mark as taken, ID:', id);
+        const response = await fetch(`/medications/${id}/taken`, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        console.log('Mark as taken response:', data);
+        if (response.ok) {
+          console.log('Marked as taken successfully:', id);
+          fetchMedications();
+        } else {
+          console.error('Error marking as taken:', data.message);
+          document.getElementById('error-message').textContent = data.message || 'Error marking as taken';
+          document.getElementById('error-message').style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Mark taken network error:', error);
+        document.getElementById('error-message').textContent = 'Network error';
+        document.getElementById('error-message').style.display = 'block';
+      }
+    }
+
+    async function deleteMedication(id) {
+      try {
+        console.log('Attempting to delete medication, ID:', id);
+        const response = await fetch(`/medications/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          console.log('Deleted medication:', id);
+          delete notifiedMedications[id];
+          fetchMedications();
+        } else {
+          const data = await response.json();
+          console.error('Error deleting medication:', data.message);
+          document.getElementById('error-message').textContent = data.message || 'Error deleting medication';
+          document.getElementById('error-message').style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Delete medication network error:', error);
+        document.getElementById('error-message').textContent = 'Network error';
+        document.getElementById('error-message').style.display = 'block';
+      }
+    }
+
+    document.getElementById('medication-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const name = document.getElementById('name').value;
+      const dosage = document.getElementById('dosage').value;
+      const time = document.getElementById('time').value;
+      const frequency = document.getElementById('frequency').value;
+      const errorMessage = document.getElementById('error-message');
+      errorMessage.style.display = 'none';
+      console.log('Sending medication request:', { name, dosage, time, frequency });
+      try {
+        const response = await fetch('/medications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ name, dosage, time, frequency })
+        });
+        const data = await response.json();
+        console.log('Add medication response:', data);
+        if (response.ok) {
+          document.getElementById('medication-form').reset();
+          fetchMedications();
+        } else {
+          errorMessage.textContent = data.message || 'Error adding medication';
+          errorMessage.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Add medication error:', error);
+        errorMessage.textContent = 'Network error';
+        errorMessage.style.display = 'block';
+      }
+    });
+
+    // Event delegation for mark-taken-button clicks
+    document.getElementById('medication-list').addEventListener('click', (event) => {
+      const target = event.target;
+      if (target.classList.contains('mark-taken-button')) {
+        const medId = target.getAttribute('data-med-id');
+        if (medId) {
+          console.log('Mark as Taken button clicked, ID:', medId);
+          markTaken(medId);
+        } else {
+          console.error('No med-id found on Mark as Taken button');
+        }
+      }
+    });
+
+    // Initialize notifications
+    requestNotificationPermission().then(granted => {
+      if (granted) {
+        checkMedications();
+        setInterval(checkMedications, 5000);
+      } else {
+        console.log('Notifications not enabled');
+        document.getElementById('error-message').textContent = 'Please enable notifications for reminders';
+        document.getElementById('error-message').style.display = 'block';
+      }
+    });
+
+    // Logout
+    document.getElementById('logout').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    });
+
+    fetchMedications();
+  </script>
+</body>
+</html>
