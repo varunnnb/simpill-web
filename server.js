@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const webpush = require('web-push');
-const User = require('./models/user');
+const cors = require('cors');
+const User = require('./models/User');
 const Medication = require('./models/Medication');
 
 const app = express();
@@ -14,9 +15,19 @@ const jwtSecret = process.env.JWT_SECRET || 'your_jwt_secret';
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 
-// Set Mongoose strictQuery
-mongoose.set('strictQuery', true);
+// MongoDB schema for push subscriptions
+const subscriptionSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  endpoint: { type: String, required: true },
+  keys: {
+    p256dh: String,
+    auth: String
+  }
+});
+const Subscription = mongoose.model('Subscription', subscriptionSchema);
 
+// Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '.')));
 
@@ -26,6 +37,28 @@ if (vapidPublicKey && vapidPrivateKey) {
 } else {
   console.warn('VAPID keys not set. Push notifications will not work.');
 }
+
+// Serve index (login)
+app.get('/', (req, res) => {
+  console.log('Serving /');
+  res.sendFile(path.join(__dirname, 'index.html'), (err) => {
+    if (err) {
+      console.error('Error serving index.html:', err);
+      res.status(500).send('Error loading page');
+    }
+  });
+});
+
+// Serve signup
+app.get('/signup', (req, res) => {
+  console.log('Serving /signup');
+  res.sendFile(path.join(__dirname, 'signup.html'), (err) => {
+    if (err) {
+      console.error('Error serving signup.html:', err);
+      res.status(500).send('Error loading signup page');
+    }
+  });
+});
 
 // Serve dashboard
 app.get('/dashboard', (req, res) => {
@@ -38,13 +71,16 @@ app.get('/dashboard', (req, res) => {
   });
 });
 
-// Store push subscriptions
-const subscriptions = {};
-
+// Subscribe to push
 app.post('/subscribe', authenticateToken, async (req, res) => {
   try {
-    const subscription = req.body;
-    subscriptions[req.user.userId] = subscription;
+    const { endpoint, keys } = req.body;
+    const subscription = { userId: req.user.userId, endpoint, keys };
+    await Subscription.findOneAndUpdate(
+      { userId: req.user.userId, endpoint },
+      subscription,
+      { upsert: true }
+    );
     console.log('Subscription saved for user:', req.user.userId);
     res.status(201).json({ message: 'Subscription saved' });
   } catch (error) {
@@ -53,15 +89,15 @@ app.post('/subscribe', authenticateToken, async (req, res) => {
   }
 });
 
-// Push notifications for medications
+// Push notifications
 async function sendPushNotifications() {
   const now = new Date();
   const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   const currentDate = now.toISOString().split('T')[0];
-  for (const userId in subscriptions) {
-    const subscription = subscriptions[userId];
+  const subscriptions = await Subscription.find();
+  for (const sub of subscriptions) {
     try {
-      const medications = await Medication.find({ userId });
+      const medications = await Medication.find({ userId: sub.userId });
       for (const med of medications) {
         if (med.frequency === 'Daily' && med.time === currentTime) {
           const lastTakenDate = med.lastTaken ? new Date(med.lastTaken).toISOString().split('T')[0] : null;
@@ -72,13 +108,13 @@ async function sendPushNotifications() {
               body: `Dosage: ${med.dosage}\nFrequency: ${med.frequency}`,
               tag: `med-${med._id}`
             };
-            await webpush.sendNotification(subscription, JSON.stringify(payload));
-            console.log(`Push sent to user ${userId}: ${med.name}`);
+            await webpush.sendNotification(sub, JSON.stringify(payload));
+            console.log(`Push sent to user ${sub.userId}: ${med.name}`);
           }
         }
       }
     } catch (error) {
-      console.error('Push error for user', userId, ':', error);
+      console.error('Push error for user', sub.userId, ':', error);
     }
   }
 }
